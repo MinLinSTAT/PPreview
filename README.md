@@ -12,7 +12,7 @@ The repository aims to ensure transparency and reproducibility for the normal li
 
 ### 1. Data
 
-- **Simulated Data**: `simu_data.csv` contains the response variable `y`, treatment indicator `z`, covariates `x1` to `x8`, and the group variable `group`.
+- **Simulated Data**: `sim_data.csv` contains the response variable `y`, treatment indicator `z`, covariates `x1` to `x8`, and the group variable `group`.
 
 ### 2. Scripts
 
