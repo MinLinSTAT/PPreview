@@ -1,0 +1,283 @@
+---
+title: "Analysis_Simulated_Data"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+combine_df <- read_csv("sim_data.csv")
+historical <- combine_df %>% filter(group == "historical")
+current <- combine_df %>% filter(group == "current")
+X0 <- model.matrix(y ~ ., data = historical[1:10])
+X <- model.matrix(y ~ ., data = current[1:10])
+y0 <- historical$y
+y <- current$y
+```
+
+### Borrowing-by-Parts Power Prior
+
+$$
+\beta|\sigma^2,D,D_0 \sim N\left((\Omega+a_{01}\Omega_0)^{-1}(X' y + a_{01}X_0' y_0),\ \sigma^2(\Omega+a_{01}\Omega_0)^{-1}\right),
+$$ $$
+\sigma^2|D,D_0\sim IG\left(\frac{v}{2},\ \frac{y'y+a_{01}\hat{y}_0'\hat{y}_0+a_{02}SSE_0-(X'y+a_{01}X_0'y_0)'(\Omega+a_{01}\Omega_0)^{-1}(X'y+a_{01}X_0'y_0)}{2}\right)
+$$
+
+and
+
+$$
+\beta|D,D_0\sim t\left((\Omega+a_{01}\Omega_0)^{-1}(X'y+a_{01}X_0'y_0),\\ \frac{y'y+a_{01}\hat{y}_0'\hat{y}_0+a_{02}SSE_0-(X'y+a_{01}X_0'y_0)'(\Omega+a_{01}\Omega_0)^{-1}(X'y+a_{01}X_0'y_0)}{v}(\Omega+a_{01}\Omega_0)^{-1},\ v\right)
+$$
+
+where $\Omega=X'X$, $\Omega_0=X_0'X_0$, and $v = n + a_{02}n_0 + (a_{01}-a_{02}-1)p$.
+
+```{r}
+Omega <- t(X) %*% X
+Omega0 <- t(X0) %*% X0
+
+Xy <- t(X) %*% y
+Xy0 <- t(X0) %*% y0
+
+p <- ncol(X)
+n <- nrow(X); n0 <- nrow(X0)
+
+SSE <- sum(resid(lm(y ~ X + 0))^2)
+SSE0 <- sum(resid(lm(y0 ~ X0 + 0))^2)
+
+bp3 <- function(a01, a02) {
+    Sig <- solve(Omega + a01 * Omega0)
+    mu <- as.vector(Sig %*% (Xy + a01 * Xy0))
+    v <- n + a02 * n0 + (a01 - a02 - 1) * p
+    SSE_post <- as.numeric(sum(y^2) + 
+        a01 * t(Xy0) %*% solve(Omega0, Xy0) + a02 * SSE0 - 
+            t(Xy + a01 * Xy0) %*% mu)
+    Sigma <- SSE_post * Sig / v
+    res <- tibble(
+        EST = mu[2], 
+        S = diag(Sigma)[2], 
+        SD = sqrt(v/(v-2) * S),
+        LB = qt(0.025, df = v)*sqrt(S) + EST,
+        UB = qt(0.975, df = v)*sqrt(S) + EST
+    ) %>% select(-c(S))
+    
+    res %>% mutate(across(EST:UB, \(x) round(x, 3)), 
+                   a01 = a01, a02 = a02)
+}
+
+```
+
+```{r}
+
+pp_res <- map(list(0.0, 0.1, 0.5, 1.0), ~bp3(.x, .x)) %>% 
+    list_rbind() %>% 
+    mutate(Prior = c("No Borrow", rep("PP", 3)), 
+           .before = everything())
+
+bp3_res <- expand.grid(
+        a01 = c(0.1, 0.5, 1.0), a02 = c(0.0, 0.5, 1.0)
+) %>%
+        rowwise() %>% group_split() %>% 
+        map(~bp3(.$a01, .$a02)) %>% list_rbind() %>% 
+    arrange(a01, a02) %>% 
+    mutate(Prior = c("pbarPP"), .before = everything()) %>% 
+    filter(!(a01 == "0.5" & a02 == 0.5), !(a01 == 1 & a02 == 1))
+
+```
+
+### Partial Borrowing-by-Parts Power Prior
+
+$$
+\gamma|D,D_0,a_{01},a_{02}\sim t(m, S, v^*)
+$$
+
+where $$
+m = \frac{z'(I-H^*)y+a_{01}z_0'(I_0-H_0^*)y_0}{z'(I-H^*)z+a_{01}z_0'(I_0-H_0^*)z_0}
+$$
+
+and
+
+$$
+S = \frac{y'y+a_{02}SSE_0 + a_{01}\hat{\beta}_0'\Omega_0^{\ast} \hat{\beta}_0-(X'y+a_{01}\Omega_0^\ast\hat{\beta}_0)'(X'X+a_{01}\Omega_0^\ast)^{-1}(X'y+a_{01}\Omega_0^\ast\hat{\beta}_0)}{v^*\{z'(I-H^*)z+a_{01}z_0'(I_0-H_0^*)z_0\}}
+$$
+
+where $v^* = n + a_{02}n_0 + (a_{01}-a_{02}-2)p+1$ if $a_{01}>0$.
+
+```{r}
+
+pbp3 <- function(a01, a02, gamma_position = 2L) {
+    Xast <- X[, -gamma_position]
+    X0ast <- X0[, -gamma_position]
+    
+    IHast <- diag(n) - Xast %*% solve(t(Xast)%*% Xast, t(Xast))
+    IH0ast <- diag(n0) - X0ast %*% solve(t(X0ast)%*% X0ast, t(X0ast))
+    
+    z <- X[, gamma_position]
+    z0 <- X0[, gamma_position]
+    
+    zIHy <- t(z) %*% IHast %*% y
+    zIHy0 <- t(z0) %*% IH0ast %*% y0
+    zIHz <- t(z) %*% IHast %*% z
+    zIHz0 <- t(z0) %*% IH0ast %*% z0
+    
+    gamma0 <- zIHy0 / zIHz0
+    
+    .Omega0 <- matrix(0, 10, 10)
+    .Omega0[gamma_position,gamma_position] <- zIHz0
+    
+    Sig <- solve(Omega + a01 * .Omega0)
+    Omebeta0 <- rep(0,10)
+    Omebeta0[gamma_position] <- zIHy0
+    
+    mu <- Sig %*% (Xy + a01 * Omebeta0)
+    if(dplyr::near(a01, 0)) {
+        v <- n + a02*n0 - (a02 + 1) * p
+    } else {
+        v <- n + a02*n0 + 1 + (a01 - a02 - 2) * p
+    }
+    SSE_post <- as.numeric(sum(y^2) + 
+        a01 * zIHy0^2 / zIHz0 + 
+        a02 * SSE0 - 
+        t(Xy + a01 * Omebeta0) %*% mu)
+    Sigma <- SSE_post * Sig / v
+    res <- tibble(
+        EST = mu[gamma_position], 
+        S = diag(Sigma)[gamma_position], 
+        SD = sqrt(v/(v-2) * S),
+        LB = qt(0.025, df = v)*sqrt(S) + EST,
+        UB = qt(0.975, df = v)*sqrt(S) + EST
+    ) %>% select(-c(S))
+    res %>% mutate(across(EST:UB, \(x) round(x, 3)), 
+               a01 = a01, a02 = a02)
+}
+pbp3_res <- expand.grid(
+        a01 = c(0.1, 0.5, 1.0), 
+        a02 = c(0.1, 0.5, 1.0)
+) %>% rowwise() %>% group_split() %>% 
+        map(~pbp3(.$a01, .$a02,)) %>% list_rbind() %>%  
+    mutate(Prior = "ppbarPP", .before = everything()) %>% 
+    arrange(a01, a02)
+```
+
+### Partial Borrowing Power Priors
+
+$$
+\beta | \sigma^2,\sigma_h^2,D,D_0,a_{0} \sim N\left((\sigma^{-2}X'X+a_0\sigma_h^{-2}X_0'X_0)^{-1}(\sigma^{-2}X'y+a_0\sigma_h^{-2}X_0'y_0),\ (\sigma^{-2}X'X+a_0\sigma_h^{-2}X_0'X_0)^{-1}\right)
+$$
+
+$$
+\sigma^2|\beta,D,D_0,a_0\sim IG(0.5n,0.5\lVert y-X\beta\rVert^2)
+$$ $$
+\sigma^2_h|\beta,D,D_0,a_0\sim IG(0.5a_0n_0,0.5a_0\lVert y_0-X_0\beta\rVert^2)
+$$
+
+```{r}
+library(mvtnorm)
+pbpp <- function(a0, n_sample = 50000L, burn_in = 10000L) {
+    #browser()
+    M <- n_sample + burn_in
+    beta <- vector("list", M)
+    w <- vector("list", M)
+    w0 <- vector("list", M)
+    w[[1]] <- 1
+    w0[[1]] <- 1
+    for(i in 2:M) {
+        post_var <- solve(w[[i-1]]*Omega + a0*w0[[i-1]]*Omega0)
+        beta[[i]] <- rmvnorm(
+            1, post_var %*% (w[[i-1]]*Xy + a0*w0[[i-1]]*Xy0),
+                post_var
+        )
+        w[[i]] <- rgamma(1, shape = 0.5*n, 
+                         rate = 0.5*sum((y - X %*% as.numeric(beta[[i]]))^2))
+        w0[[i]] <- rgamma(1, shape = 0.5*n0, 
+                          rate = 0.5*sum((y0 - X0 %*% as.numeric(beta[[i]]))^2))
+    }
+    # browser()
+    z <- map_dbl(beta[(burn_in+1):M], ~ .[2])
+    mu <- mean(z)
+    SD <- sd(z)
+    hpd <- boa::boa.hpd(z, 0.05)
+
+    res <- tibble(
+        Prior = "pPP",
+        EST = mu, 
+        SD = SD,
+        LB = hpd[1],
+        UB = hpd[2]
+    )
+    res %>% mutate(across(EST:UB, \(x) round(x, 3)), 
+                   a0 = a0)
+}
+system.time(
+        pbpp_res1 <- pbpp(0.1)
+) # 22.21s 
+system.time(
+        pbpp_res2 <- pbpp(0.5)
+)
+system.time(
+        pbpp_res3 <- pbpp(1)
+)
+pbpp_res <- bind_rows(
+    pbpp_res1, pbpp_res2, pbpp_res3
+)
+
+```
+
+### IPTW + Power Prior
+
+$$
+\beta|D,D_0\sim t\left((X'X+a_0X_0'AX_0)^{-1}(X'y+a_0X_0'Ay_0),\\
+\frac{y'y+a_0y_0'Ay_0-(X'y+a_0X_0'Ay_0)'(X'X+a_0X_0'AX_0)^{-1}(X'y+a_0X_0'Ay_0)}{n+a_0n_0-p}(X'X+a_0X_0'AX_0)^{-1}\right)
+$$
+
+where $A = \mathrm{diag}(a_{0i})$.
+
+```{r}
+dat1 <- combine_df %>% 
+        mutate(code = if_else(group == "current", 1L, 0L)) 
+PS <- glm(code ~ . -1 - y - group, data = dat1, family = binomial()) %>% 
+        fitted() %>% .[1:n0]
+wast <- PS / (1 - PS)
+w <- wast / sum(wast) * n0
+a <- PS * w
+A <- diag(a)
+AOmega0 <- t(X0) %*% A %*% X0
+AXy0 <- t(X0) %*% A %*% y0
+
+iptw_pp <- function() {
+    Sig <- solve(Omega + AOmega0)
+    mu <- Sig %*% (Xy + AXy0)
+    v <- n + n0 - p
+    SSE_post <- as.numeric(sum(y^2) + 
+            t(y0) %*% A %*% y0 - 
+            t(Xy + AXy0) %*% mu)
+    Sigma <- SSE_post * Sig / v
+    res <- tibble(
+            EST = mu[2], 
+            S = diag(Sigma)[2],
+            SD = sqrt(v/(v-2) * S),
+            LB = qt(0.025, df = v)*sqrt(S) + EST,
+            UB = qt(0.975, df = v)*sqrt(S) + EST
+    ) %>% select(-c(S))
+    res %>% mutate(across(EST:UB, \(x) round(x, 3)), a0 = 1)
+}
+
+iptw_res <- iptw_pp() %>% 
+    mutate(Prior = "iptwPP", .before = everything())
+
+```
+
+```{r}
+res <- bind_rows(
+    pp_res, pbpp_res, iptw_res, bp3_res, pbp3_res
+) %>% mutate(
+    a0 = case_when(
+        is.na(a0) & a01 != a02 ~ paste0("(", a01, ", ", a02, ")"), 
+        is.na(a0) & a01 == a02 ~ as.character(a01),
+        Prior == "iptwPP" ~ "Equation (26)",
+        TRUE ~ as.character(a0)
+    ),
+    `95% HPD` = paste0("(", LB, ", ", UB, ")")
+) %>% select(-(LB:a02)) %>% 
+    select(Prior, a0, everything())
+res %>% write_csv("simu_res.csv")
+```
