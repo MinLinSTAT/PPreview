@@ -6,17 +6,17 @@ This repository contains the simulated data and analysis scripts accompanying th
 
 **Power Priors for Leveraging Historical Data: Looking Back and Looking Forward**
 
-The repository is intended to provide transparency and reproducibility for the normal linear regression part presented in the paper. The simulated data mimics the ADNI data, but protect the privacy. Details of the posterior computation are also listed in the qmd file. Users can explore the simulation results, understand the methodology, and apply the provided scripts to their own data.
+The repository aims to ensure transparency and reproducibility for the normal linear regression analyses presented in the paper. The simulated data is designed to mimic ADNI data while protecting privacy. Detailed posterior computations are provided in the `analysis_simulated data.qmd` file. Users can explore the simulation results, understand the methodology, and apply the provided scripts to their own datasets.
 
 ## Contents
 
 ### 1. Data
 
-- **Simulated Data**: `simu_data.csv` contains the response variable `y`, treatment indicator `z`, covariates `x1` to `x8`. and group variable `group`.
+- **Simulated Data**: `simu_data.csv` contains the response variable `y`, treatment indicator `z`, covariates `x1` to `x8`, and the group variable `group`.
 
 ### 2. Scripts
 
-- **Analysis Scripts**: `analysis_simulated data.qmd` includes posterior computation for the borrowing-by-parts power prior (`bp3`), the partial borrowing-by-parts power prior (`pbp3`), the partial borrowing power prior (`pbpp`), and the iptw power prior (`iptw_pp`). Note that `bp3(a01 = a0, a02 = a0)` gives the result for the power prior with discounting coefficient `a0`.
+- **Analysis Scripts**: `analysis_simulated data.qmd` includes posterior computations for the borrowing-by-parts power prior (`bp3`), the partial borrowing-by-parts power prior (`pbp3`), the partial borrowing power prior (`pbpp`), and the iptw power prior (`iptw_pp`). Note that `bp3(a01 = a0, a02 = a0)` represents the results for the power prior with discounting coefficient `a0`. The file also includes the necessary formulas. 
 
 ## Getting Started
 
