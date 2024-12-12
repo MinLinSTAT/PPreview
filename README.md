@@ -12,11 +12,11 @@ The repository is intended to provide transparency and reproducibility for the n
 
 ### 1. Data
 
-- **Simulated Data**: `simu\_data.csv` contains the response variable `y`, treatment indicator `z`, covariates `x1` to `x8`. and group variable `group`.
+- **Simulated Data**: `simu_data.csv` contains the response variable `y`, treatment indicator `z`, covariates `x1` to `x8`. and group variable `group`.
 
 ### 2. Scripts
 
-- **Analysis Scripts**: \`analysis\_simulated data.qmd\` includes posterior computation for the borrowing-by-parts power prior (`bp3`), the partial borrowing-by-parts power prior (`pbp3`), the partial borrowing power prior (`pbpp`), and the iptw power prior (`iptw_pp`). Note that `bp3(a01 = a0, a02 = a0)` gives the result for the power prior with discounting coefficient `a0`.
+- **Analysis Scripts**: `analysis_simulated data.qmd` includes posterior computation for the borrowing-by-parts power prior (`bp3`), the partial borrowing-by-parts power prior (`pbp3`), the partial borrowing power prior (`pbpp`), and the iptw power prior (`iptw_pp`). Note that `bp3(a01 = a0, a02 = a0)` gives the result for the power prior with discounting coefficient `a0`.
 
 ## Getting Started
 
