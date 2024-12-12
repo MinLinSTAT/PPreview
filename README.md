@@ -1,4 +1,4 @@
-# PPreview
+# Power Priors for Leveraging Historical Data: Looking Back and Looking Forward
 
 ## Overview
 
