@@ -36,7 +36,7 @@ To run the scripts, you need:
 
 1. Clone this repository:
    ```bash
-   git https://github.com/MinLinSTAT/PPreview
+   git clone https://github.com/MinLinSTAT/PPreview
    cd PPreview
    ```
 2. Open R or RStudio and set the working directory to the repository:
