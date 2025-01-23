@@ -49,7 +49,7 @@ To run the scripts, you need:
 If you use this repository or find it helpful, please cite the corresponding paper:
 
 ```
-Power Priors for Leveraging Historical Data: Looking Back and Looking Forward
+Ming-Hui Chen, Zhe Guan, Min Lin, Max Sun, _Power Priors for Leveraging Historical Data: Looking Back and Looking Forward_ (2024), Journal of Data Science , 1-30, DOI 10.6339/24-JDS1161
 ```
 
 ## License
