@@ -59,7 +59,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Contact
 
 For questions or issues, please create an issue in the GitHub repository or contact:
-**Maintainer:**
 - Min Lin (R) [min.2.lin@uconn.edu](mailto\:min.2.lin@uconn.edu)
 - Zhe Guan (SAS) [zhe.guan@uconn.edu](mailto\:zhe.guan@uconn.edu)
 
