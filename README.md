@@ -18,7 +18,13 @@ The repository aims to ensure transparency and reproducibility for the analyses 
 ### 2. Scripts
 
 - **R Script for Simulated Data**: `analysis_simulated data.qmd` includes posterior computations for the borrowing-by-parts power prior (`bp3`), the partial borrowing-by-parts power prior (`pbp3`), the partial borrowing power prior (`pbpp`), and the iptw power prior (`iptw_pp`). Note that `bp3(a01 = a0, a02 = a0)` represents the results for the power prior with discounting coefficient `a0`. The file also includes the necessary formulas.
-- **SAS Script for Kociba-NTP data**: `Kociba_NTP_example.sas` includes the Kociba-NTP data and the corresponding analysis script. 
+- **SAS Script for Kociba-NTP data**: `Kociba_NTP_example.sas` includes the Kociba-NTP data and the corresponding analysis script.
+
+## Rejoinder
+
+### Scripts
+
+- **SAS Script for Reverse Simpson’s paradox**: `reverse_simpson_paradox_rejoinder_jds.sas` includes the SAS code for the reverse Simpson paradox using the power prior and partial power prior.
 
 ## Getting Started
 
